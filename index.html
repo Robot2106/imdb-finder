@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IMDb-Finder</title>
+<meta name="theme-color" content="#f5c518">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23f5c518'/><text x='50' y='66' font-size='46' font-family='Arial' font-weight='bold' text-anchor='middle'>tt</text></svg>">
+<style>
+  :root {
+    --bg: #f4f4f2; --card: #ffffff; --text: #1b1b1b; --muted: #6b6b6b;
+    --line: #dddcd7; --accent: #f5c518; --accent-text: #1b1b1b; --ok: #1e7f3c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121212; --card: #1e1e1e; --text: #f0f0f0; --muted: #9a9a9a; --line: #333; --ok: #5fd08a; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; justify-content: center; padding: 32px 16px;
+  }
+  main { width: 100%; max-width: 440px; }
+  h1 { font-size: 20px; margin: 0 0 16px; display: flex; align-items: center; gap: 10px; }
+  h1 span { background: var(--accent); color: var(--accent-text); padding: 2px 8px; border-radius: 4px; font-weight: 800; }
+  form { display: grid; grid-template-columns: 1fr 90px; gap: 8px; }
+  input {
+    font: inherit; padding: 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--text); width: 100%; min-width: 0;
+  }
+  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 8px;
+    background: var(--accent); color: var(--accent-text); padding: 12px;
+  }
+  form button { grid-column: 1 / -1; }
+  #result {
+    margin-top: 20px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 20px; text-align: center; display: none;
+  }
+  #id {
+    font: 700 30px/1.2 ui-monospace, Consolas, monospace; letter-spacing: .5px;
+    user-select: all; -webkit-user-select: all; cursor: pointer; word-break: break-all;
+  }
+  #info { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  #copy { margin-top: 14px; width: 100%; }
+  #status { margin-top: 8px; font-size: 14px; color: var(--ok); min-height: 20px; }
+  details { margin-top: 16px; text-align: left; font-size: 14px; }
+  summary { cursor: pointer; color: var(--muted); }
+  ul { list-style: none; padding: 0; margin: 8px 0 0; }
+  li { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+  li { align-items: center; }
+  .r { display: flex; align-items: center; gap: 8px; }
+  .mini { padding: 4px 8px; font-size: 14px; }
+  li code { font-family: ui-monospace, Consolas, monospace; cursor: pointer; white-space: nowrap; }
+  .err { color: #c0392b !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1><span>IMDb</span> Finder</h1>
+  <form id="f" autocomplete="off">
+    <input id="name" placeholder="Film oder Serie" required autofocus>
+    <input id="jahr" placeholder="Jahr" inputmode="numeric" maxlength="4" pattern="\d{4}">
+    <button type="submit">Suchen</button>
+  </form>
+
+  <div id="result">
+    <div id="id" title="Antippen zum Kopieren"></div>
+    <div id="info"></div>
+    <button id="copy" type="button">📋 IMDb-ID kopieren</button>
+    <div id="status"></div>
+    <details id="more"><summary>Andere Treffer</summary><ul id="list"></ul></details>
+  </div>
+</main>
+
+<script>
+const TYPES = ['movie','tvSeries','tvMiniSeries','tvMovie','tvSpecial','short','video','tvShort'];
+const $ = s => document.querySelector(s);
+const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+// IMDb liefert JSONP: https://sg.media-imdb.com/suggests/<a>/<query>.json -> imdb$<query>(...)
+function suggest(name) {
+  return new Promise((resolve, reject) => {
+    const q = norm(name).replace(/[^a-z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+    if (!q) return reject(new Error('Ungültiger Name'));
+    const cb = 'imdb$' + q;
+    const s = document.createElement('script');
+    const timer = setTimeout(() => done(new Error('Zeitüberschreitung')), 10000);
+    function done(err, data) {
+      clearTimeout(timer); delete window[cb]; s.remove();
+      err ? reject(err) : resolve(data);
+    }
+    window[cb] = data => done(null, data);
+    s.onerror = () => done(new Error('IMDb nicht erreichbar'));
+    s.src = `https://sg.media-imdb.com/suggests/${q[0]}/${q}.json`;
+    document.head.appendChild(s);
+  });
+}
+
+function pick(hits, name, jahr) {
+  const n = norm(name).replace(/[^a-z0-9]/g, '');
+  const exact = hits.filter(h => norm(h.l).replace(/[^a-z0-9]/g, '') === n);
+  if (jahr) {
+    for (const l of [exact, hits]) { const h = l.find(h => h.y === jahr); if (h) return h; }
+    for (const l of [exact, hits]) { const h = l.find(h => h.y && Math.abs(h.y - jahr) <= 1); if (h) return h; }
+  }
+  return exact[0] || hits[0];
+}
+
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const r = document.createRange(); r.selectNodeContents($('#id'));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    document.execCommand('copy');
+  }
+  $('#status').textContent = text + ' kopiert ✓';
+}
+
+function show(h) {
+  $('#id').textContent = h.id;
+  $('#info').textContent = `${h.l}${h.y ? ' (' + h.y + ')' : ''}${h.q ? ' · ' + h.q : ''}`;
+  $('#info').classList.remove('err');
+}
+
+$('#f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = $('#name').value.trim();
+  const jahr = parseInt($('#jahr').value, 10) || null;
+  const box = $('#result');
+  box.style.display = 'block';
+  $('#id').textContent = '…'; $('#info').textContent = 'Suche …'; $('#status').textContent = '';
+  $('#copy').style.display = 'none'; $('#more').style.display = 'none';
+  try {
+    const data = await suggest(name);
+    const hits = (data.d || []).filter(h => /^tt\d+$/.test(h.id) && (!h.qid || TYPES.includes(h.qid)));
+    if (!hits.length) throw new Error('Nichts gefunden');
+    const best = pick(hits, name, jahr);
+    show(best);
+    $('#copy').style.display = 'block';
+    copy(best.id);
+
+    const others = hits.filter(h => h !== best);
+    $('#list').innerHTML = '';
+    others.forEach(h => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span></span><span class="r"><code></code><button type="button" class="mini">📋</button></span>`;
+      li.querySelector('span').textContent = `${h.l}${h.y ? ' (' + h.y + ')' : ''}`;
+      li.querySelector('code').textContent = h.id;
+      li.querySelector('code').addEventListener('click', () => { show(h); copy(h.id); });
+      li.querySelector('.mini').title = h.id + ' kopieren';
+      li.querySelector('.mini').addEventListener('click', () => copy(h.id));
+      $('#list').appendChild(li);
+    });
+    $('#more').style.display = others.length ? 'block' : 'none';
+    $('#more').open = false;
+  } catch (err) {
+    $('#id').textContent = '—';
+    $('#info').textContent = err.message;
+    $('#info').classList.add('err');
+  }
+});
+
+$('#copy').addEventListener('click', () => copy($('#id').textContent));
+$('#id').addEventListener('click', () => copy($('#id').textContent));
+</script>
+</body>
+</html>
