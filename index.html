@@ -10,9 +10,10 @@
   :root {
     --bg: #f4f4f2; --card: #ffffff; --text: #1b1b1b; --muted: #6b6b6b;
     --line: #dddcd7; --accent: #f5c518; --accent-text: #1b1b1b; --ok: #1e7f3c;
+    --soft: #f0efe9; --err: #c0392b;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #121212; --card: #1e1e1e; --text: #f0f0f0; --muted: #9a9a9a; --line: #333; --ok: #5fd08a; }
+    :root { --bg: #121212; --card: #1e1e1e; --text: #f0f0f0; --muted: #9a9a9a; --line: #333; --ok: #5fd08a; --soft: #262626; --err: #ff7b6b; }
   }
   * { box-sizing: border-box; }
   body {
@@ -20,87 +21,196 @@
     font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     display: flex; justify-content: center; padding: 32px 16px;
   }
-  main { width: 100%; max-width: 440px; }
+  main { width: 100%; max-width: 440px; transition: max-width .2s; }
+  main.wide { max-width: 860px; }
   h1 { font-size: 20px; margin: 0 0 16px; display: flex; align-items: center; gap: 10px; }
   h1 span { background: var(--accent); color: var(--accent-text); padding: 2px 8px; border-radius: 4px; font-weight: 800; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .tab {
+    background: none; color: var(--muted); border-radius: 0; padding: 10px 12px;
+    border-bottom: 3px solid transparent; margin-bottom: -1px;
+  }
+  .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+  [hidden] { display: none !important; }
+
   form { display: grid; grid-template-columns: 1fr 90px; gap: 8px; }
-  input {
+  input, select {
     font: inherit; padding: 12px; border: 1px solid var(--line); border-radius: 8px;
     background: var(--card); color: var(--text); width: 100%; min-width: 0;
   }
-  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  input:focus, select:focus { outline: 2px solid var(--accent); border-color: transparent; }
   button {
     font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 8px;
     background: var(--accent); color: var(--accent-text); padding: 12px;
   }
+  button.ghost { background: var(--soft); color: var(--text); font-weight: 500; }
   form button { grid-column: 1 / -1; }
-  #result {
-    margin-top: 20px; background: var(--card); border: 1px solid var(--line);
-    border-radius: 10px; padding: 20px; text-align: center; display: none;
-  }
-  #id {
-    font: 700 30px/1.2 ui-monospace, Consolas, monospace; letter-spacing: .5px;
-    user-select: all; -webkit-user-select: all; cursor: pointer; word-break: break-all;
-  }
-  #info { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .card { margin-top: 20px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .err { color: var(--err) !important; }
+  .ok { color: var(--ok); }
+  code, .mono { font-family: ui-monospace, Consolas, monospace; }
+
+  /* Reiter 1 */
+  #result { text-align: center; }
+  #id { font: 700 30px/1.2 ui-monospace, Consolas, monospace; letter-spacing: .5px; user-select: all; -webkit-user-select: all; cursor: pointer; word-break: break-all; }
+  #info { margin-top: 6px; }
   #copy { margin-top: 14px; width: 100%; }
-  #status { margin-top: 8px; font-size: 14px; color: var(--ok); min-height: 20px; }
+  #status { margin-top: 8px; font-size: 14px; min-height: 20px; }
   details { margin-top: 16px; text-align: left; font-size: 14px; }
   summary { cursor: pointer; color: var(--muted); }
   ul { list-style: none; padding: 0; margin: 8px 0 0; }
-  li { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
-  li { align-items: center; }
+  #list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
   .r { display: flex; align-items: center; gap: 8px; }
-  .mini { padding: 4px 8px; font-size: 14px; }
-  li code { font-family: ui-monospace, Consolas, monospace; cursor: pointer; white-space: nowrap; }
-  .err { color: #c0392b !important; }
+  .mini { padding: 4px 8px; font-size: 13px; }
+  #list li code { cursor: pointer; white-space: nowrap; }
+  #toEp { margin-top: 10px; width: 100%; }
+
+  /* Reiter 2 */
+  .cands li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  .cands li:hover { color: var(--ok); }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--soft); color: var(--muted); white-space: nowrap; }
+  .head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .head h2 { margin: 0; font-size: 18px; }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+  .tools select, .tools input { width: auto; flex: 1 1 140px; padding: 8px 10px; }
+  .tools button { padding: 8px 12px; font-size: 14px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--soft); cursor: pointer; user-select: none; white-space: nowrap; position: sticky; top: 0; }
+  th .arr { color: var(--muted); font-size: 11px; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  td.nowrap { white-space: nowrap; }
+  tr.season td { background: var(--soft); font-weight: 600; }
+  td code { cursor: pointer; }
+  .keybox { margin-top: 24px; font-size: 14px; }
+  .keybox ol { padding-left: 20px; margin: 8px 0; }
+  .keybox .row { display: flex; gap: 8px; margin-top: 8px; }
+  .keybox input { padding: 8px 10px; }
+  .keybox button { padding: 8px 12px; font-size: 14px; }
+  a { color: inherit; }
 </style>
 </head>
 <body>
-<main>
+<main id="main">
   <h1><span>IMDb</span> Finder</h1>
-  <form id="f" autocomplete="off">
-    <input id="name" placeholder="Film oder Serie" required autofocus>
-    <input id="jahr" placeholder="Jahr" inputmode="numeric" maxlength="4" pattern="\d{4}">
-    <button type="submit">Suchen</button>
-  </form>
 
-  <div id="result">
-    <div id="id" title="Antippen zum Kopieren"></div>
-    <div id="info"></div>
-    <button id="copy" type="button">📋 IMDb-ID kopieren</button>
-    <div id="status"></div>
-    <details id="more"><summary>Andere Treffer</summary><ul id="list"></ul></details>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="t1" aria-selected="true">IMDb-ID</button>
+    <button class="tab" role="tab" data-tab="t2" aria-selected="false">Folgen &amp; Filmreihen</button>
   </div>
+
+  <!-- ===================== Reiter 1 ===================== -->
+  <section id="t1">
+    <form id="f" autocomplete="off">
+      <input id="name" placeholder="Film oder Serie" required autofocus>
+      <input id="jahr" placeholder="Jahr" inputmode="numeric" maxlength="4" pattern="\d{4}">
+      <button type="submit">Suchen</button>
+    </form>
+
+    <div id="result" class="card" hidden>
+      <div id="id" title="Antippen zum Kopieren"></div>
+      <div id="info" class="muted"></div>
+      <button id="copy" type="button">📋 IMDb-ID kopieren</button>
+      <button id="toEp" type="button" class="ghost" hidden>📺 Folgen / Filmreihe anzeigen</button>
+      <div id="status" class="ok"></div>
+      <details id="more"><summary>Andere Treffer</summary><ul id="list"></ul></details>
+    </div>
+  </section>
+
+  <!-- ===================== Reiter 2 ===================== -->
+  <section id="t2" hidden>
+    <form id="f2" autocomplete="off">
+      <input id="q2" placeholder="Name oder IMDb-ID (tt…)" required>
+      <input id="y2" placeholder="Jahr" inputmode="numeric" maxlength="4" pattern="\d{4}">
+      <button type="submit">Folgen / Filme anzeigen</button>
+    </form>
+    <div id="srcnote" class="muted" style="margin-top:8px"></div>
+
+    <div id="out2"></div>
+
+    <details class="keybox" id="keybox">
+      <summary>⚙️ Deutsche Titel einrichten (TMDB-Schlüssel)</summary>
+      <p class="muted">Ohne Schlüssel kommen die Folgen von TVmaze, also mit <b>englischen</b> Titeln und ohne Filmreihen.
+        Mit einem kostenlosen TMDB-Schlüssel bekommst du <b>deutsche Titel</b>, Originaltitel und Filmreihen mit allen Teilen.</p>
+      <ol class="muted">
+        <li>Kostenlos registrieren auf <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">themoviedb.org</a></li>
+        <li>Unter <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">Einstellungen → API</a> einen Schlüssel anfordern</li>
+        <li>Den „API-Schlüssel“ oder das „Lesezugriffs-Token“ hier einfügen</li>
+      </ol>
+      <div class="row">
+        <input id="keyIn" placeholder="TMDB-Schlüssel" autocomplete="off" spellcheck="false">
+        <button id="keySave" type="button">Speichern</button>
+      </div>
+      <div id="keyStatus" class="muted" style="margin-top:6px"></div>
+    </details>
+  </section>
 </main>
 
 <script>
-const TYPES = ['movie','tvSeries','tvMiniSeries','tvMovie','tvSpecial','short','video','tvShort'];
+/* ---------------------------------------------------------------- Allgemein */
 const $ = s => document.querySelector(s);
-const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const squash = s => norm(s).replace(/[^a-z0-9]/g, '');
+const TYPES = ['movie','tvSeries','tvMiniSeries','tvMovie','tvSpecial','short','video','tvShort'];
+const SERIES = ['tvSeries','tvMiniSeries'];
+const pad = n => String(n).padStart(2, '0');
+const fmtDate = d => d ? d.split('-').reverse().join('.') : '';
 
-// IMDb liefert JSONP: https://sg.media-imdb.com/suggests/<a>/<query>.json -> imdb$<query>(...)
-function suggest(name) {
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } },
+  set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch {} }
+};
+
+async function copyText(text, statusEl) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  if (statusEl) {
+    const short = text.length > 40 ? 'Liste' : text;
+    statusEl.textContent = short + ' kopiert ✓';
+    statusEl.className = 'ok';
+  }
+}
+
+/* Tabs */
+function openTab(name) {
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  $('#t1').hidden = name !== 't1';
+  $('#t2').hidden = name !== 't2';
+  $('#main').classList.toggle('wide', name === 't2');
+  store.set('imdbTab', name);
+}
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => openTab(b.dataset.tab)));
+
+/* IMDb-Vorschläge (JSONP, keine Anmeldung nötig) */
+function imdbSuggest(name) {
   return new Promise((resolve, reject) => {
     const q = norm(name).replace(/[^a-z0-9 ]/g, '').trim().replace(/\s+/g, '_');
     if (!q) return reject(new Error('Ungültiger Name'));
     const cb = 'imdb$' + q;
     const s = document.createElement('script');
     const timer = setTimeout(() => done(new Error('Zeitüberschreitung')), 10000);
-    function done(err, data) {
-      clearTimeout(timer); delete window[cb]; s.remove();
-      err ? reject(err) : resolve(data);
-    }
+    function done(err, data) { clearTimeout(timer); delete window[cb]; s.remove(); err ? reject(err) : resolve(data); }
     window[cb] = data => done(null, data);
     s.onerror = () => done(new Error('IMDb nicht erreichbar'));
     s.src = `https://sg.media-imdb.com/suggests/${q[0]}/${q}.json`;
     document.head.appendChild(s);
   });
 }
-
+async function imdbHits(name) {
+  const data = await imdbSuggest(name);
+  return (data.d || []).filter(h => /^tt\d+$/.test(h.id) && (!h.qid || TYPES.includes(h.qid)));
+}
 function pick(hits, name, jahr) {
-  const n = norm(name).replace(/[^a-z0-9]/g, '');
-  const exact = hits.filter(h => norm(h.l).replace(/[^a-z0-9]/g, '') === n);
+  const n = squash(name);
+  const exact = hits.filter(h => squash(h.l) === n);
   if (jahr) {
     for (const l of [exact, hits]) { const h = l.find(h => h.y === jahr); if (h) return h; }
     for (const l of [exact, hits]) { const h = l.find(h => h.y && Math.abs(h.y - jahr) <= 1); if (h) return h; }
@@ -108,38 +218,31 @@ function pick(hits, name, jahr) {
   return exact[0] || hits[0];
 }
 
-async function copy(text) {
-  try { await navigator.clipboard.writeText(text); }
-  catch {
-    const r = document.createRange(); r.selectNodeContents($('#id'));
-    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
-    document.execCommand('copy');
-  }
-  $('#status').textContent = text + ' kopiert ✓';
-}
-
+/* ---------------------------------------------------------------- Reiter 1 */
+let current = null;
 function show(h) {
+  current = h;
   $('#id').textContent = h.id;
   $('#info').textContent = `${h.l}${h.y ? ' (' + h.y + ')' : ''}${h.q ? ' · ' + h.q : ''}`;
   $('#info').classList.remove('err');
+  $('#toEp').hidden = false;
+  $('#toEp').textContent = SERIES.includes(h.qid) ? '📺 Folgen anzeigen' : '🎬 Filmreihe anzeigen';
 }
 
 $('#f').addEventListener('submit', async e => {
   e.preventDefault();
   const name = $('#name').value.trim();
   const jahr = parseInt($('#jahr').value, 10) || null;
-  const box = $('#result');
-  box.style.display = 'block';
+  $('#result').hidden = false;
   $('#id').textContent = '…'; $('#info').textContent = 'Suche …'; $('#status').textContent = '';
-  $('#copy').style.display = 'none'; $('#more').style.display = 'none';
+  $('#copy').hidden = true; $('#more').hidden = true; $('#toEp').hidden = true;
   try {
-    const data = await suggest(name);
-    const hits = (data.d || []).filter(h => /^tt\d+$/.test(h.id) && (!h.qid || TYPES.includes(h.qid)));
+    const hits = await imdbHits(name);
     if (!hits.length) throw new Error('Nichts gefunden');
     const best = pick(hits, name, jahr);
     show(best);
-    $('#copy').style.display = 'block';
-    copy(best.id);
+    $('#copy').hidden = false;
+    copyText(best.id, $('#status'));
 
     const others = hits.filter(h => h !== best);
     $('#list').innerHTML = '';
@@ -148,12 +251,12 @@ $('#f').addEventListener('submit', async e => {
       li.innerHTML = `<span></span><span class="r"><code></code><button type="button" class="mini">📋</button></span>`;
       li.querySelector('span').textContent = `${h.l}${h.y ? ' (' + h.y + ')' : ''}`;
       li.querySelector('code').textContent = h.id;
-      li.querySelector('code').addEventListener('click', () => { show(h); copy(h.id); });
+      li.querySelector('code').addEventListener('click', () => { show(h); copyText(h.id, $('#status')); });
       li.querySelector('.mini').title = h.id + ' kopieren';
-      li.querySelector('.mini').addEventListener('click', () => copy(h.id));
+      li.querySelector('.mini').addEventListener('click', () => copyText(h.id, $('#status')));
       $('#list').appendChild(li);
     });
-    $('#more').style.display = others.length ? 'block' : 'none';
+    $('#more').hidden = !others.length;
     $('#more').open = false;
   } catch (err) {
     $('#id').textContent = '—';
@@ -161,9 +264,330 @@ $('#f').addEventListener('submit', async e => {
     $('#info').classList.add('err');
   }
 });
+$('#copy').addEventListener('click', () => copyText($('#id').textContent, $('#status')));
+$('#id').addEventListener('click', () => copyText($('#id').textContent, $('#status')));
+$('#toEp').addEventListener('click', () => {
+  if (!current) return;
+  openTab('t2');
+  $('#q2').value = current.id; $('#y2').value = '';
+  loadByImdb(current.id, current.qid);
+});
 
-$('#copy').addEventListener('click', () => copy($('#id').textContent));
-$('#id').addEventListener('click', () => copy($('#id').textContent));
+/* ---------------------------------------------------------------- Datenquellen */
+function tmdbKey() { return store.get('tmdbKey'); }
+
+async function tmdb(path, params = {}) {
+  const key = tmdbKey();
+  const u = new URL('https://api.themoviedb.org/3' + path);
+  if (!('language' in params)) params.language = 'de-DE';
+  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+  const opt = {};
+  if (key.length > 40) opt.headers = { Authorization: 'Bearer ' + key };
+  else u.searchParams.set('api_key', key);
+  const r = await fetch(u, opt);
+  if (r.status === 401) throw new Error('TMDB-Schlüssel ungültig – bitte unten prüfen');
+  if (!r.ok) throw new Error('TMDB-Fehler ' + r.status);
+  return r.json();
+}
+
+async function tvmaze(path) {
+  const r = await fetch('https://api.tvmaze.com' + path);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('TVmaze-Fehler ' + r.status);
+  return r.json();
+}
+
+function updateSrcNote() {
+  $('#srcnote').innerHTML = tmdbKey()
+    ? 'Quelle: TMDB · <b>deutsche Titel</b>'
+    : 'Quelle: TVmaze · englische Titel · <a href="#" id="keyLink">deutsche Titel einrichten</a>';
+  const l = $('#keyLink');
+  if (l) l.addEventListener('click', e => { e.preventDefault(); $('#keybox').open = true; $('#keyIn').focus(); });
+  $('#keyStatus').textContent = tmdbKey() ? 'Schlüssel gespeichert (nur auf diesem Gerät).' : '';
+  $('#keyIn').value = tmdbKey() ? '••••••••' + tmdbKey().slice(-4) : '';
+}
+$('#keySave').addEventListener('click', async () => {
+  const v = $('#keyIn').value.trim();
+  if (v.startsWith('••••')) return;
+  const old = tmdbKey();
+  store.set('tmdbKey', v);
+  if (!v) { updateSrcNote(); return; }
+  $('#keyStatus').textContent = 'Prüfe …';
+  try {
+    await tmdb('/configuration', { language: '' });
+    updateSrcNote();
+    $('#keyStatus').textContent = 'Schlüssel funktioniert ✓ (gespeichert nur auf diesem Gerät)';
+    $('#keyStatus').className = 'ok';
+  } catch (e) {
+    store.set('tmdbKey', old);
+    $('#keyStatus').textContent = 'Dieser Schlüssel funktioniert nicht.';
+    $('#keyStatus').className = 'err';
+  }
+});
+
+/* ---------------------------------------------------------------- Reiter 2: Suche */
+const out = () => $('#out2');
+function busy(msg) { out().innerHTML = `<div class="card muted">${esc(msg)}</div>`; }
+function fail(msg) { out().innerHTML = `<div class="card err">${esc(msg)}</div>`; }
+
+$('#f2').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('#q2').value.trim();
+  const jahr = parseInt($('#y2').value, 10) || null;
+  const tt = q.match(/tt\d{5,}/);
+  if (tt) return loadByImdb(tt[0]);
+  busy('Suche …');
+  try {
+    const cands = tmdbKey() ? await tmdbCandidates(q, jahr) : await imdbCandidates(q, jahr);
+    if (!cands.length) return fail('Nichts gefunden.');
+    if (cands.length === 1) return cands[0].open();
+    renderCandidates(cands);
+  } catch (err) { fail(err.message); }
+});
+
+async function tmdbCandidates(q, jahr) {
+  const d = await tmdb('/search/multi', { query: q, include_adult: 'false' });
+  let list = (d.results || []).filter(r => r.media_type === 'tv' || r.media_type === 'movie')
+    .map(r => {
+      const date = r.first_air_date || r.release_date || '';
+      return {
+        title: r.name || r.title, orig: r.original_name || r.original_title,
+        year: date ? +date.slice(0, 4) : null, kind: r.media_type === 'tv' ? 'Serie' : 'Film',
+        open: () => r.media_type === 'tv' ? loadTmdbTv(r.id) : loadTmdbMovie(r.id)
+      };
+    });
+  if (jahr) {
+    const exact = list.filter(c => c.year === jahr);
+    if (exact.length) list = exact;
+  }
+  return list.slice(0, 10);
+}
+
+async function imdbCandidates(q, jahr) {
+  let hits = await imdbHits(q);
+  if (jahr) { const ex = hits.filter(h => h.y === jahr); if (ex.length) hits = ex; }
+  return hits.slice(0, 10).map(h => ({
+    title: h.l, year: h.y, kind: SERIES.includes(h.qid) ? 'Serie' : (h.q || 'Film'),
+    open: () => loadByImdb(h.id, h.qid)
+  }));
+}
+
+function renderCandidates(cands) {
+  out().innerHTML = `<div class="card"><div class="muted">Mehrere Treffer – bitte auswählen:</div><ul class="cands"></ul></div>`;
+  const ul = out().querySelector('ul');
+  cands.forEach(c => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span><b>${esc(c.title)}</b>${c.year ? ' (' + c.year + ')' : ''}${c.orig && c.orig !== c.title ? `<br><span class="muted">${esc(c.orig)}</span>` : ''}</span><span class="badge">${esc(c.kind)}</span>`;
+    li.addEventListener('click', () => c.open());
+    ul.appendChild(li);
+  });
+}
+
+async function loadByImdb(tt, qid) {
+  busy('Lade …');
+  try {
+    if (tmdbKey()) {
+      const f = await tmdb(`/find/${tt}`, { external_source: 'imdb_id' });
+      if (f.tv_results?.length) return loadTmdbTv(f.tv_results[0].id);
+      if (f.movie_results?.length) return loadTmdbMovie(f.movie_results[0].id);
+      if (f.tv_episode_results?.length) return loadTmdbTv(f.tv_episode_results[0].show_id);
+      return fail('Bei TMDB nicht gefunden.');
+    }
+    const show = await tvmaze(`/lookup/shows?imdb=${tt}`);
+    if (show) return loadTvmaze(show);
+    if (qid && !SERIES.includes(qid)) return fail('Filmreihen gibt es nur mit TMDB-Schlüssel (siehe ⚙️ unten).');
+    fail('Bei TVmaze nicht gefunden. Mit TMDB-Schlüssel (⚙️ unten) klappt es eventuell.');
+  } catch (err) { fail(err.message); }
+}
+
+/* ---------------------------------------------------------------- Reiter 2: Laden */
+async function loadTmdbTv(id) {
+  busy('Lade Folgen …');
+  try {
+    const show = await tmdb(`/tv/${id}`, { append_to_response: 'external_ids' });
+    const ol = show.original_language || 'en';
+    busy(`Lade ${show.seasons.length} Staffeln …`);
+    const seasons = await Promise.all(show.seasons.map(s => Promise.all([
+      tmdb(`/tv/${id}/season/${s.season_number}`),
+      ol === 'de' ? null : tmdb(`/tv/${id}/season/${s.season_number}`, { language: ol }).catch(() => null)
+    ])));
+    const rows = [];
+    for (const [de, orig] of seasons) {
+      const om = new Map((orig?.episodes || []).map(e => [e.episode_number, e.name]));
+      for (const e of de.episodes || []) {
+        rows.push({ s: e.season_number, e: e.episode_number, title: e.name, orig: om.get(e.episode_number) || '', date: e.air_date || '' });
+      }
+    }
+    renderEpisodes({
+      title: show.name, sub: show.original_name !== show.name ? show.original_name : '',
+      year: (show.first_air_date || '').slice(0, 4), imdb: show.external_ids?.imdb_id,
+      rows, hasOrig: ol !== 'de', titleLabel: 'Titel (Deutsch)'
+    });
+  } catch (err) { fail(err.message); }
+}
+
+async function loadTvmaze(show) {
+  busy('Lade Folgen …');
+  try {
+    const eps = await tvmaze(`/shows/${show.id}/episodes?specials=1`) || [];
+    const rows = eps.map(e => ({
+      s: e.season, e: e.number ?? 0, title: e.name, orig: '', date: e.airdate || ''
+    })).map(r => (r.e === 0 && r.s ? { ...r, s: 0 } : r));
+    renderEpisodes({
+      title: show.name, sub: '', year: (show.premiered || '').slice(0, 4), imdb: show.externals?.imdb,
+      rows, hasOrig: false, titleLabel: 'Titel (Englisch)'
+    });
+  } catch (err) { fail(err.message); }
+}
+
+async function loadTmdbMovie(id) {
+  busy('Lade Film …');
+  try {
+    const m = await tmdb(`/movie/${id}`, { append_to_response: 'external_ids' });
+    let parts = [{ ...m, imdb: m.external_ids?.imdb_id }];
+    let title = m.title, sub = 'Einzelfilm – gehört zu keiner Filmreihe';
+    if (m.belongs_to_collection) {
+      busy('Lade Filmreihe …');
+      const c = await tmdb(`/collection/${m.belongs_to_collection.id}`);
+      title = c.name; sub = `${c.parts.length} Filme`;
+      const ids = await Promise.all(c.parts.map(p => tmdb(`/movie/${p.id}/external_ids`, { language: '' }).catch(() => ({}))));
+      parts = c.parts.map((p, i) => ({ ...p, imdb: ids[i].imdb_id }));
+    }
+    parts.sort((a, b) => (a.release_date || '9999').localeCompare(b.release_date || '9999'));
+    renderMovies({ title, sub, rows: parts.map((p, i) => ({
+      nr: i + 1, title: p.title, orig: p.original_title !== p.title ? p.original_title : '',
+      date: p.release_date || '', imdb: p.imdb || '', current: p.id === m.id
+    })) });
+  } catch (err) { fail(err.message); }
+}
+
+/* ---------------------------------------------------------------- Reiter 2: Anzeige */
+let view = null; // { kind, cols, rows, sortKey, dir, season, filter, meta }
+
+function renderEpisodes(meta) {
+  meta.rows.forEach(r => r.code = `S${pad(r.s)}E${pad(r.e)}`);
+  const cols = [
+    { key: 's', label: 'Staffel', n: true },
+    { key: 'e', label: 'Folge', n: true },
+    { key: 'code', label: 'Code', mono: true },
+    { key: 'title', label: meta.titleLabel },
+    ...(meta.hasOrig ? [{ key: 'orig', label: 'Originaltitel' }] : []),
+    { key: 'date', label: 'Erstausstrahlung', date: true }
+  ];
+  view = { kind: 'tv', cols, rows: meta.rows, sortKey: 'code', dir: 1, season: 'all', filter: '', meta };
+  drawShell();
+}
+
+function renderMovies(meta) {
+  const cols = [
+    { key: 'nr', label: 'Nr.', n: true },
+    { key: 'title', label: 'Titel (Deutsch)' },
+    { key: 'orig', label: 'Originaltitel' },
+    { key: 'date', label: 'Erscheinung', date: true },
+    { key: 'imdb', label: 'IMDb-ID', mono: true, copy: true }
+  ];
+  view = { kind: 'movie', cols, rows: meta.rows, sortKey: 'nr', dir: 1, season: 'all', filter: '', meta };
+  drawShell();
+}
+
+function drawShell() {
+  const { meta, kind, rows } = view;
+  const seasons = [...new Set(rows.map(r => r.s))].sort((a, b) => (a || 999) - (b || 999));
+  const count = kind === 'tv'
+    ? `${rows.filter(r => r.s !== 0).length} Folgen · ${seasons.filter(s => s !== 0).length} Staffeln`
+    : meta.sub;
+  out().innerHTML = `
+    <div class="card">
+      <div class="head">
+        <h2>${esc(meta.title)}${meta.year ? ` <span class="muted">(${esc(meta.year)})</span>` : ''}</h2>
+        ${meta.imdb ? `<span class="r"><code>${esc(meta.imdb)}</code><button type="button" class="mini" id="cpShow">📋</button></span>` : ''}
+      </div>
+      ${meta.sub && kind === 'tv' ? `<div class="muted">${esc(meta.sub)}</div>` : ''}
+      <div class="muted">${esc(count)}</div>
+      <div class="tools">
+        ${kind === 'tv' ? `<select id="seasonSel"><option value="all">Alle Staffeln</option>${seasons.map(s => `<option value="${s}">${s === 0 ? 'Specials' : 'Staffel ' + s}</option>`).join('')}</select>` : ''}
+        <input id="filterIn" placeholder="In Liste suchen …">
+        <button type="button" class="ghost" id="cpList">📋 Liste kopieren</button>
+        <button type="button" class="ghost" id="dlCsv">⬇️ CSV</button>
+      </div>
+      <div id="tstatus" class="muted" style="min-height:20px"></div>
+      <div class="tablewrap"><table><thead></thead><tbody></tbody></table></div>
+    </div>`;
+  $('#cpShow')?.addEventListener('click', () => copyText(meta.imdb, $('#tstatus')));
+  $('#seasonSel')?.addEventListener('change', e => { view.season = e.target.value; drawTable(); });
+  $('#filterIn').addEventListener('input', e => { view.filter = norm(e.target.value); drawTable(); });
+  $('#cpList').addEventListener('click', () => copyText(toText('\t'), $('#tstatus')));
+  $('#dlCsv').addEventListener('click', downloadCsv);
+  drawTable();
+}
+
+function visibleRows() {
+  const { rows, season, filter, sortKey, dir, kind } = view;
+  let list = rows.filter(r => season === 'all' || String(r.s) === season);
+  if (kind === 'tv' && season === 'all') list = list.filter(r => r.s !== 0).concat(list.filter(r => r.s === 0));
+  if (filter) list = list.filter(r => view.cols.some(c => norm(r[c.key] ?? '').includes(filter)));
+  const col = view.cols.find(c => c.key === sortKey);
+  const cmp = (a, b) => {
+    let x = a[sortKey] ?? '', y = b[sortKey] ?? '';
+    if (col.n) return (x - y) * dir;
+    if (sortKey === 'code') { x = a.s * 10000 + a.e; y = b.s * 10000 + b.e; if (!a.s) x += 1e7; if (!b.s) y += 1e7; return (x - y) * dir; }
+    if (!x && y) return 1; if (x && !y) return -1;
+    return String(x).localeCompare(String(y), 'de', { numeric: true }) * dir;
+  };
+  return list.slice().sort((a, b) => cmp(a, b) || (a.s - b.s) || (a.e - b.e));
+}
+
+function drawTable() {
+  const tbl = out().querySelector('table');
+  tbl.querySelector('thead').innerHTML = '<tr>' + view.cols.map(c =>
+    `<th data-k="${c.key}" class="${c.n ? 'n' : ''}">${esc(c.label)} <span class="arr">${view.sortKey === c.key ? (view.dir > 0 ? '▲' : '▼') : '↕'}</span></th>`
+  ).join('') + '</tr>';
+  tbl.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+    const k = th.dataset.k;
+    view.dir = view.sortKey === k ? -view.dir : 1;
+    view.sortKey = k;
+    drawTable();
+  }));
+
+  const list = visibleRows();
+  const grouped = view.kind === 'tv' && view.sortKey === 'code' && view.season === 'all' && !view.filter;
+  let html = '', last = null;
+  for (const r of list) {
+    if (grouped && r.s !== last) {
+      const n = list.filter(x => x.s === r.s).length;
+      html += `<tr class="season"><td colspan="${view.cols.length}">${r.s === 0 ? 'Specials' : 'Staffel ' + r.s} <span class="muted">· ${n} Folgen</span></td></tr>`;
+      last = r.s;
+    }
+    html += `<tr${r.current ? ' style="font-weight:600"' : ''}>` + view.cols.map(c => {
+      let v = r[c.key] ?? '';
+      if (c.date) v = fmtDate(v);
+      if (c.copy && v) return `<td class="nowrap"><code data-copy="${esc(v)}">${esc(v)}</code> <button type="button" class="mini" data-copy="${esc(v)}">📋</button></td>`;
+      return `<td class="${c.n ? 'n' : ''}${c.mono || c.date ? ' nowrap mono' : ''}">${esc(v)}</td>`;
+    }).join('') + '</tr>';
+  }
+  tbl.querySelector('tbody').innerHTML = html || `<tr><td colspan="${view.cols.length}" class="muted">Keine Einträge.</td></tr>`;
+  tbl.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => copyText(b.dataset.copy, $('#tstatus'))));
+}
+
+function toText(sep) {
+  const q = v => sep === ';' && /[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v.replace(/[\t\n]/g, ' ');
+  const lines = [view.cols.map(c => c.label).join(sep)];
+  for (const r of visibleRows()) lines.push(view.cols.map(c => q(String(c.date ? fmtDate(r[c.key]) : (r[c.key] ?? '')))).join(sep));
+  return lines.join('\n');
+}
+
+function downloadCsv() {
+  const blob = new Blob(['﻿' + toText(';')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = view.meta.title.replace(/[\\/:*?"<>|]/g, '') + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* Start */
+updateSrcNote();
+openTab(store.get('imdbTab') === 't2' ? 't2' : 't1');
 </script>
 </body>
 </html>
